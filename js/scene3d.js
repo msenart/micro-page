@@ -476,6 +476,40 @@ export function start() {
     }, { passive: true });
   }
 
+  // On phones, tilting the device moves the camera just like the mouse does on desktop.
+  if (coarse && !calm && typeof DeviceOrientationEvent !== 'undefined') {
+    let base = null; // neutral pose: however the phone is being held
+    const clamp = THREE.MathUtils.clamp;
+    const onTilt = (e) => {
+      if (e.gamma == null || e.beta == null) return; // no sensor (e.g. desktop browsers)
+      const angle = (((screen.orientation ? screen.orientation.angle : window.orientation || 0) % 360) + 360) % 360;
+      let x = e.gamma; // left-right tilt
+      let y = e.beta; // front-back tilt
+      if (angle === 90) { x = e.beta; y = -e.gamma; }
+      else if (angle === 270) { x = -e.beta; y = e.gamma; }
+      else if (angle === 180) { x = -e.gamma; y = -e.beta; }
+      if (!base) base = { x, y };
+      base.x += (x - base.x) * 0.002; // drift the neutral pose toward the current one over a few seconds
+      base.y += (y - base.y) * 0.002;
+      pointer.tx = clamp((x - base.x) / 35, -0.5, 0.5); // about 17 degrees of tilt = full range
+      pointer.ty = clamp((y - base.y) / 35, -0.5, 0.5);
+    };
+    const listen = () => addEventListener('deviceorientation', onTilt, { passive: true });
+    addEventListener('orientationchange', () => { base = null; });
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS only hands out motion data after the user agrees, and only from inside a tap
+      const ask = () => {
+        removeEventListener('touchend', ask);
+        removeEventListener('click', ask);
+        DeviceOrientationEvent.requestPermission().then((s) => { if (s === 'granted') listen(); }).catch(() => {});
+      };
+      addEventListener('touchend', ask);
+      addEventListener('click', ask);
+    } else {
+      listen();
+    }
+  }
+
   // ----- time of day state -----
   // 'live' follows the clock of this device, 'lapse' is a fast day-night cycle, 'manual' is the slider
   let mode = 'live';
