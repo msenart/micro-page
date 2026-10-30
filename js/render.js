@@ -51,6 +51,7 @@ export function renderWeek(root, { monday, people, dayStart, dayEnd, minDuration
   body.append(axis);
 
   const freeByDay = [];
+  let n = 0; // staggers the pop-in animation
   dates.forEach((d) => {
     const date = isoDate(d);
     const col = el('div', 'day');
@@ -61,6 +62,7 @@ export function renderWeek(root, { monday, people, dayStart, dayEnd, minDuration
     freeByDay.push({ date: d, free });
     free.forEach((s) => {
       const b = el('div', 'free');
+      b.style.setProperty('--i', n++);
       b.style.top = `${top(s.start, dayStart)}px`;
       b.style.height = `${top(s.end, dayStart) - top(s.start, dayStart)}px`;
       b.title = `Everyone free ${fmt(s.start)}–${fmt(s.end)}`;
@@ -80,7 +82,11 @@ export function renderWeek(root, { monday, people, dayStart, dayEnd, minDuration
           b.style.left = `${(i / people.length) * 100}%`;
           b.style.width = `${100 / people.length}%`;
           b.style.setProperty('--c', p.color);
-          b.title = `${p.name}: ${e.title}\n${e.start}–${e.end}${e.location ? `\n${e.location}` : ''}`;
+          b.style.setProperty('--i', n++);
+          Object.assign(b.dataset, {
+            person: p.name, title: e.title, time: `${e.start}–${e.end}`,
+            location: e.location ?? '', color: p.color,
+          });
           b.append(el('b', '', e.title), el('span', '', `${e.start}–${e.end}`));
           if (e.location) b.append(el('span', '', e.location));
           col.append(b);

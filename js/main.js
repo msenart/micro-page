@@ -1,3 +1,4 @@
+import './fx.js';
 import { loadPeople } from './data.js';
 import { initUI, mondayOf } from './ui.js';
 

@@ -2,11 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#35a7f0">
   <title>Common Free Time</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <div class="bubbles" aria-hidden="true">
+    <span class="bubble" style="--s:120px; --x:6%;  --d:19s; --delay:-3s;  --dx:40px"></span>
+    <span class="bubble" style="--s:60px;  --x:22%; --d:14s; --delay:-9s;  --dx:-30px"></span>
+    <span class="bubble" style="--s:180px; --x:41%; --d:26s; --delay:-14s; --dx:50px"></span>
+    <span class="bubble" style="--s:80px;  --x:63%; --d:17s; --delay:-5s;  --dx:-40px"></span>
+    <span class="bubble" style="--s:140px; --x:80%; --d:23s; --delay:-11s; --dx:30px"></span>
+    <span class="bubble" style="--s:40px;  --x:92%; --d:12s; --delay:-1s;  --dx:-20px"></span>
+  </div>
+
   <div class="page">
     <header class="panel hero">
       <h1>Common Free Time</h1>
@@ -35,6 +48,8 @@
       <ul id="free-list" class="free-list"></ul>
     </section>
   </div>
+
+  <div id="tip" class="tip" hidden></div>
 
   <script type="module" src="js/main.js"></script>
 </body>
