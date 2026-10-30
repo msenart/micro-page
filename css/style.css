@@ -1,0 +1,38 @@
+:root {
+  --bg: #f7f8fa; --fg: #1f2933; --muted: #6b7280; --line: #e3e6ea;
+  --free: rgba(34, 197, 94, .22); --free-line: #22c55e;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #14171a; --fg: #e6e8eb; --muted: #9aa3ad; --line: #2a2f35; --free: rgba(34, 197, 94, .25); }
+}
+* { box-sizing: border-box; }
+body { margin: 0 auto; padding: 16px; background: var(--bg); color: var(--fg); font: 15px/1.4 system-ui, sans-serif; max-width: 1200px; }
+h1 { margin: 0; font-size: 1.5rem; }
+h2 { font-size: 1.1rem; }
+.muted { color: var(--muted); margin: 4px 0; }
+.error { color: #dc2626; }
+.controls, .weeknav { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 14px 0; }
+.people { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 2px solid var(--c); border-radius: 999px; padding: 2px 12px; cursor: pointer; }
+.chip:has(input:checked) { background: var(--c); color: #fff; }
+.chip input { display: none; }
+button, select { font: inherit; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+button { cursor: pointer; }
+.legend { margin-left: auto; color: var(--muted); }
+.swatch { display: inline-block; width: 14px; height: 14px; background: var(--free); border: 1px solid var(--free-line); vertical-align: -2px; }
+
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+.grid { min-width: 760px; }
+.grid-head, .grid-body { display: grid; grid-template-columns: 52px repeat(7, 1fr); }
+.grid-head { border-bottom: 1px solid var(--line); }
+.day-title { text-align: center; font-weight: 600; padding: 6px 0; border-left: 1px solid var(--line); }
+.axis { position: relative; }
+.tick { position: absolute; right: 6px; transform: translateY(-50%); font-size: 11px; color: var(--muted); }
+.axis .tick:first-child { transform: none; }
+.day { position: relative; border-left: 1px solid var(--line); background-image: linear-gradient(var(--line) 1px, transparent 1px); }
+.free { position: absolute; inset-inline: 0; background: var(--free); border-block: 1px dashed var(--free-line); }
+.event { position: absolute; background: var(--c); color: #fff; border-radius: 4px; padding: 2px 4px; font-size: 11px; overflow: hidden; border: 1px solid var(--bg); line-height: 1.25; }
+.event b { display: block; font-size: 12px; }
+.event span { display: block; opacity: .9; }
+.free-list { list-style: none; padding: 0; white-space: pre; font-family: ui-monospace, monospace; font-size: 13px; }
+.free-list li { padding: 3px 0; border-bottom: 1px solid var(--line); }

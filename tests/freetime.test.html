@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>freetime tests</title>
+<pre id="out"></pre>
+<script type="module">
+import { commonFreeSlots, mergeIntervals } from '../js/freetime.js';
+const out = document.getElementById('out');
+let failed = 0;
+const eq = (name, got, want) => {
+  const ok = JSON.stringify(got) === JSON.stringify(want);
+  if (!ok) failed++;
+  out.textContent += `${ok ? 'PASS' : 'FAIL'} ${name}${ok ? '' : `\n  got  ${JSON.stringify(got)}\n  want ${JSON.stringify(want)}`}\n`;
+};
+const P = (...evs) => ({ events: evs.map(([date, start, end]) => ({ date, start, end })) });
+const D = '2026-11-05';
+
+eq('merge overlap + touching', mergeIntervals([[0, 10], [10, 20], [30, 40], [35, 50]]), [[0, 20], [30, 50]]);
+eq('no events -> whole window', commonFreeSlots([P()], D, 480, 1260), [{ start: 480, end: 1260 }]);
+eq('one event splits window', commonFreeSlots([P([D, '10:00', '12:00'])], D, 480, 1260),
+  [{ start: 480, end: 600 }, { start: 720, end: 1260 }]);
+eq('two people union of busy', commonFreeSlots([P([D, '08:00', '10:00']), P([D, '09:00', '11:00'])], D, 480, 720),
+  [{ start: 660, end: 720 }]);
+eq('event outside window ignored', commonFreeSlots([P([D, '06:00', '07:00'])], D, 480, 600), [{ start: 480, end: 600 }]);
+eq('event straddling window end', commonFreeSlots([P([D, '11:00', '14:00'])], D, 480, 720), [{ start: 480, end: 660 }]);
+eq('other date ignored', commonFreeSlots([P(['2026-11-06', '09:00', '10:00'])], D, 480, 600), [{ start: 480, end: 600 }]);
+eq('min duration filter', commonFreeSlots([P([D, '09:00', '09:30'])], D, 480, 600, 60), []);
+out.textContent += failed ? `\n${failed} FAILED` : '\nAll passed';
+</script>
