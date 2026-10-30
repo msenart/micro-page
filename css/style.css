@@ -77,6 +77,82 @@ body {
   100% { transform: translate3d(0, -135vh, 0) scale(.95); opacity: 0; }
 }
 
+/* ---------- water: scrolling waves, falling drops ---------- */
+/* 300% wide = three wave periods; sliding by one period (33.33%) loops seamlessly */
+.wave {
+  position: absolute; left: -10vw; bottom: -60px; /* extra room so the mouse parallax never shows an edge */
+  width: 300%; height: calc(var(--h) + 60px);
+  animation: wave-slide var(--d) linear infinite;
+  animation-direction: var(--dir, normal);
+}
+.wave svg { display: block; width: 100%; height: 100%; }
+.wave .crest { fill: none; stroke: rgba(255, 255, 255, .8); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+@keyframes wave-slide { to { transform: translateX(-33.3333%); } }
+
+/* a glossy water drop: a rotated square with one pointed corner */
+.drop {
+  position: absolute; left: var(--x); top: -6%;
+  width: var(--s); height: var(--s);
+  opacity: 0;
+  animation: fall var(--d) cubic-bezier(.45, 0, .9, .6) var(--delay) infinite;
+}
+.drop::before {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 0 50% 50% 50%;
+  transform: rotate(45deg);
+  background:
+    radial-gradient(circle at 18% 48%, rgba(255, 255, 255, .95) 0 12%, transparent 30%),
+    radial-gradient(circle at 60% 60%, rgba(190, 240, 255, .55), rgba(40, 160, 235, .65));
+  border: 1px solid rgba(255, 255, 255, .8);
+  box-shadow: inset -2px -3px 6px rgba(0, 90, 180, .35), 0 3px 8px rgba(0, 90, 180, .25);
+}
+@keyframes fall {
+  0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+  8%   { opacity: .95; }
+  82%  { opacity: .95; }
+  100% { transform: translate3d(var(--dx), 88vh, 0); opacity: 0; }
+}
+
+/* ---------- metal: chrome spheres and a spinning gyroscope ---------- */
+.chrome {
+  position: absolute; left: var(--x); top: var(--y);
+  width: var(--s); height: var(--s);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .7);
+  /* sky on top, dark horizon line, bright ground below: the classic chrome-ball reflection */
+  background:
+    radial-gradient(circle at 32% 24%, #fff 0 5%, rgba(255, 255, 255, .0) 16%),
+    linear-gradient(180deg, #e8f6ff 0%, #9fd0f0 36%, #4d6f88 49%, #1c2f40 55%, #6e98b3 72%, #d9eefb 100%);
+  box-shadow:
+    inset -8px -12px 24px rgba(0, 25, 55, .5),
+    inset 6px 6px 16px rgba(255, 255, 255, .45),
+    0 14px 26px rgba(0, 60, 120, .3);
+  animation: bob var(--d) ease-in-out infinite alternate;
+}
+@keyframes bob { to { transform: translate3d(var(--dx), -22px, 0); } }
+
+.gyro-wrap {
+  position: absolute; left: var(--x); top: var(--y);
+  width: var(--s); height: var(--s);
+  perspective: 800px;
+  animation: drift var(--d) ease-in-out infinite alternate;
+}
+.gyro { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
+.gyro i {
+  position: absolute; inset: 0; border-radius: 50%;
+  /* brushed-steel ring: bright and dark bands around the circle, hollow in the middle */
+  background: conic-gradient(#f6fbff, #8da1b3, #ffffff, #55687a, #dfe9f1, #7a8d9f, #f6fbff);
+  -webkit-mask-image: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  mask-image: radial-gradient(farthest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  filter: drop-shadow(0 3px 5px rgba(0, 50, 100, .35));
+}
+.gyro i:nth-child(1) { animation: ring-y 12s linear infinite; }
+.gyro i:nth-child(2) { inset: 12%; animation: ring-x 16s linear infinite; }
+.gyro i:nth-child(3) { inset: 24%; animation: ring-d 20s linear infinite reverse; }
+@keyframes ring-y { to { transform: rotateY(360deg); } }
+@keyframes ring-x { to { transform: rotateX(360deg); } }
+@keyframes ring-d { from { transform: rotate3d(1, 1, 0, 0deg); } to { transform: rotate3d(1, 1, 0, 360deg); } }
+
 /* ---------- layout & glass panels ---------- */
 .page {
   position: relative; z-index: 1;

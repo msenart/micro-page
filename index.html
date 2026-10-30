@@ -11,24 +11,47 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- 3D background: three depth layers with different mouse parallax, bubbles + glass cubes -->
+  <!-- shared water gradients, used by the wave paths below -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="water-far" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b4efff" stop-opacity=".6"/><stop offset="1" stop-color="#3fb0ee" stop-opacity=".6"/></linearGradient>
+      <linearGradient id="water-mid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fd8ff" stop-opacity=".7"/><stop offset="1" stop-color="#0f86d8" stop-opacity=".75"/></linearGradient>
+      <linearGradient id="water-near" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3cc0f5" stop-opacity=".85"/><stop offset="1" stop-color="#0360b8" stop-opacity=".95"/></linearGradient>
+    </defs>
+  </svg>
+
+  <!-- 3D background: three depth layers (far -> near), each following the mouse a bit more.
+       Bubbles rise from behind the waves; chrome spheres bob on the water. -->
   <div class="scene" aria-hidden="true">
     <div class="layer far">
       <span class="bubble" style="--s:40px;  --x:12%; --d:22s; --delay:-4s;  --dx:-20px"></span>
       <span class="bubble" style="--s:55px;  --x:58%; --d:25s; --delay:-15s; --dx:25px"></span>
       <span class="bubble" style="--s:35px;  --x:90%; --d:20s; --delay:-8s;  --dx:-15px"></span>
-      <div class="cube-wrap" style="--s:50px; --x:30%; --y:62%; --d:11s; --spin:26s; --dx:30px"><div class="cube"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="cube-wrap" style="--s:50px; --x:30%; --y:55%; --d:11s; --spin:26s; --dx:30px"><div class="cube"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <span class="drop" style="--s:14px; --x:20%; --d:9s;  --delay:-2s; --dx:10px"></span>
+      <span class="drop" style="--s:10px; --x:74%; --d:11s; --delay:-7s; --dx:-8px"></span>
+      <span class="chrome" style="--s:64px; --x:50%; --y:76%; --d:5s; --dx:8px"></span>
+      <div class="wave" style="--h:20vh; --d:70s; --dir:normal"><svg viewBox="0 0 2160 120" preserveAspectRatio="none"><path fill="url(#water-far)" d="M0 50 C90 15 270 15 360 50 C450 85 630 85 720 50 C810 15 990 15 1080 50 C1170 85 1350 85 1440 50 C1530 15 1710 15 1800 50 C1890 85 2070 85 2160 50 L2160 120 L0 120 Z"/><path class="crest" d="M0 50 C90 15 270 15 360 50 C450 85 630 85 720 50 C810 15 990 15 1080 50 C1170 85 1350 85 1440 50 C1530 15 1710 15 1800 50 C1890 85 2070 85 2160 50"/></svg></div>
     </div>
     <div class="layer mid">
       <span class="bubble" style="--s:90px;  --x:6%;  --d:19s; --delay:-3s;  --dx:40px"></span>
       <span class="bubble" style="--s:70px;  --x:44%; --d:16s; --delay:-9s;  --dx:-30px"></span>
       <span class="bubble" style="--s:100px; --x:72%; --d:21s; --delay:-12s; --dx:35px"></span>
       <div class="cube-wrap" style="--s:90px; --x:78%; --y:22%; --d:13s; --spin:32s; --dx:-40px"><div class="cube"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <!-- gyroscope: three metal rings spinning on different axes -->
+      <div class="gyro-wrap" style="--s:150px; --x:62%; --y:46%; --d:14s; --dx:-30px"><div class="gyro"><i></i><i></i><i></i></div></div>
+      <span class="drop" style="--s:18px; --x:36%; --d:8s;  --delay:-5s; --dx:-12px"></span>
+      <span class="chrome" style="--s:100px; --x:12%; --y:70%; --d:6s; --dx:-10px"></span>
+      <div class="wave" style="--h:15vh; --d:48s; --dir:reverse"><svg viewBox="0 0 2160 120" preserveAspectRatio="none"><path fill="url(#water-mid)" d="M0 50 C90 15 270 15 360 50 C450 85 630 85 720 50 C810 15 990 15 1080 50 C1170 85 1350 85 1440 50 C1530 15 1710 15 1800 50 C1890 85 2070 85 2160 50 L2160 120 L0 120 Z"/><path class="crest" d="M0 50 C90 15 270 15 360 50 C450 85 630 85 720 50 C810 15 990 15 1080 50 C1170 85 1350 85 1440 50 C1530 15 1710 15 1800 50 C1890 85 2070 85 2160 50"/></svg></div>
     </div>
     <div class="layer near">
       <span class="bubble" style="--s:190px; --x:34%; --d:28s; --delay:-14s; --dx:50px"></span>
       <span class="bubble" style="--s:150px; --x:86%; --d:24s; --delay:-6s;  --dx:-45px"></span>
       <div class="cube-wrap" style="--s:140px; --x:4%; --y:40%; --d:15s; --spin:40s; --dx:50px"><div class="cube"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <span class="drop" style="--s:24px; --x:90%; --d:7s;  --delay:-1s; --dx:-14px"></span>
+      <span class="drop" style="--s:20px; --x:52%; --d:9s;  --delay:-6s; --dx:12px"></span>
+      <span class="chrome" style="--s:170px; --x:76%; --y:74%; --d:7s; --dx:-14px"></span>
+      <div class="wave" style="--h:10vh; --d:30s; --dir:normal"><svg viewBox="0 0 2160 120" preserveAspectRatio="none"><path fill="url(#water-near)" d="M0 50 C90 15 270 15 360 50 C450 85 630 85 720 50 C810 15 990 15 1080 50 C1170 85 1350 85 1440 50 C1530 15 1710 15 1800 50 C1890 85 2070 85 2160 50 L2160 120 L0 120 Z"/><path class="crest" d="M0 50 C90 15 270 15 360 50 C450 85 630 85 720 50 C810 15 990 15 1080 50 C1170 85 1350 85 1440 50 C1530 15 1710 15 1800 50 C1890 85 2070 85 2160 50"/></svg></div>
     </div>
   </div>
 
@@ -56,7 +79,8 @@
       <button id="prev" class="gel" aria-label="Previous week">&larr;</button>
       <strong id="week-label"></strong>
       <button id="next" class="gel" aria-label="Next week">&rarr;</button>
-      <button id="today" class="gel">Today</button>    </nav>
+      <button id="today" class="gel">Today</button>
+    </nav>
 
     <div class="panel scroll"><div id="grid" class="grid"></div></div>
 
