@@ -25,6 +25,7 @@ Push this folder to a GitHub repository, then Settings → Pages → Deploy from
 | Path | Purpose |
 |---|---|
 | `index.html`, `css/`, `js/` | the page (`js/freetime.js` holds the free-slot logic) |
+| `js/scene3d.js`, `js/vendor/` | WebGL background (simulated sea + metal objects, three.js vendored); falls back to the CSS background when WebGL is unavailable |
 | `data/people.json` | list of people (name, color, data file) |
 | `data/people/<id>.json` | one timetable per person |
 | `sources/<id>/` | original screenshots the data was extracted from |

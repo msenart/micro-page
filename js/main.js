@@ -11,3 +11,8 @@ try {
   document.getElementById('error').textContent =
     `${err.message}. If you opened index.html directly, serve the folder over HTTP instead (see README).`;
 }
+
+// 3D sea + metal background; on any failure the CSS background stays.
+import('./scene3d.js')
+  .then((m) => m.start())
+  .catch((err) => console.warn('3D background unavailable, using the CSS one:', err));

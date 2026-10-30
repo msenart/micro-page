@@ -77,6 +77,11 @@ body {
   100% { transform: translate3d(0, -135vh, 0) scale(.95); opacity: 0; }
 }
 
+/* ---------- WebGL background: when it runs, the CSS scene below is hidden ---------- */
+#bg3d { display: none; position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+html.gl #bg3d { display: block; }
+html.gl .scene { display: none; }
+
 /* ---------- water: scrolling waves, falling drops ---------- */
 /* 300% wide = three wave periods; sliding by one period (33.33%) loops seamlessly */
 .wave {
