@@ -159,13 +159,14 @@ function makePalm() {
   }
 
   const nutMat = mat('#5a3a1c', { roughness: 0.6 });
-  [[0.12, -0.12, 0.1], [-0.1, -0.14, 0.08], [0.02, -0.15, -0.14]].forEach(([x, y, z]) => {
-    const nut = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), nutMat);
-    nut.position.set(x, y, z);
-    crown.add(nut);
+  const nuts = [[0.12, -0.12, 0.1], [-0.1, -0.14, 0.08], [0.02, -0.15, -0.14]].map(([x, y, z]) => {
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), nutMat);
+    mesh.position.set(x, y, z);
+    crown.add(mesh);
+    return { mesh, home: mesh.position.clone(), state: 'attached', vy: 0, vx: 0, timer: 0 };
   });
 
-  return { palm, fronds };
+  return { palm, fronds, nuts };
 }
 
 // ---------- old PC: CRT monitor, tower, keyboard, on a wooden crate ----------
@@ -206,7 +207,7 @@ function makePC() {
   kb.rotation.x = 0.08;
   pc.add(kb);
 
-  return { pc, led };
+  return { pc, led, screen };
 }
 
 export function createIsland({ coarse = false } = {}) {
@@ -226,23 +227,90 @@ export function createIsland({ coarse = false } = {}) {
     group.add(rock);
   });
 
-  const { palm, fronds } = makePalm();
+  const { palm, fronds, nuts } = makePalm();
   palm.position.set(1.3, 1.45, -0.5);
   group.add(palm);
 
-  const { pc, led } = makePC();
+  const { pc, led, screen } = makePC();
   pc.scale.setScalar(0.7);
   pc.position.set(-0.9, 1.5, 0.5);
   pc.rotation.y = 0.45; // turned a little toward the viewer
   group.add(pc);
 
-  function update(t) {
-    palm.rotation.z = Math.sin(t * 0.7) * 0.025; // the whole tree sways...
-    fronds.forEach(({ frond, tilt, phase }) => {
-      frond.rotation.z = tilt + Math.sin(t * 1.3 + phase) * 0.05; // ...and the fronds flutter
-    });
-    led.visible = Math.sin(t * 5) > -0.6; // drive activity light
+  // ----- interaction state -----
+  let powerTarget = 1; // PC on
+  let power = 1; // 0..1, eased so the screen fades and collapses like a CRT
+  const sway = { x: 0, vx: 0, z: 0, vz: 0 }; // extra swing of the whole tree, driven by shake()
+  const GROUND = -3.58; // coconut resting height, in crown space
+
+  /** Switch the old PC on or off. */
+  function togglePower() {
+    powerTarget = powerTarget ? 0 : 1;
+    return !!powerTarget;
   }
 
-  return { group, update };
+  /** Shake the palm; sometimes a coconut comes loose. */
+  function shake(strength = 1) {
+    sway.vz += (Math.random() < 0.5 ? -1 : 1) * 0.9 * strength;
+    sway.vx += (Math.random() - 0.5) * 0.9 * strength;
+    const attached = nuts.filter((n) => n.state === 'attached');
+    if (attached.length) {
+      const nut = attached[Math.floor(Math.random() * attached.length)];
+      nut.state = 'falling';
+      nut.vy = 0;
+      nut.vx = (nut.home.x >= 0 ? 1 : -1) * 0.8; // drifts outward so it clears the trunk
+    }
+  }
+
+  function update(t, dt = 0) {
+    // palm: spring-damper swing on top of the gentle idle sway
+    const K = 18;
+    const C = 1.6;
+    sway.vz += (-K * sway.z - C * sway.vz) * dt;
+    sway.z += sway.vz * dt;
+    sway.vx += (-K * sway.x - C * sway.vx) * dt;
+    sway.x += sway.vx * dt;
+    palm.rotation.z = Math.sin(t * 0.7) * 0.025 + sway.z;
+    palm.rotation.x = sway.x;
+    const energy = Math.min(1, Math.abs(sway.vz) + Math.abs(sway.vx) + (Math.abs(sway.z) + Math.abs(sway.x)) * 2);
+    fronds.forEach(({ frond, tilt, phase }) => {
+      frond.rotation.z = tilt + Math.sin(t * 1.3 + phase) * 0.05 + Math.sin(t * 9 + phase * 2) * 0.12 * energy; // rustle when shaken
+    });
+
+    // coconuts: fall, bounce, rest on the ground for a while, then grow back on the tree
+    nuts.forEach((n) => {
+      if (n.state === 'falling') {
+        n.vy -= 14 * dt;
+        n.mesh.position.y += n.vy * dt;
+        n.mesh.position.x += n.vx * dt;
+        if (n.mesh.position.y < GROUND) {
+          n.mesh.position.y = GROUND;
+          n.vy *= -0.35;
+          n.vx *= 0.5;
+          if (Math.abs(n.vy) < 1) { n.state = 'resting'; n.timer = 3.5; }
+        }
+      } else if (n.state === 'resting') {
+        n.timer -= dt;
+        if (n.timer <= 0) {
+          n.state = 'growing';
+          n.timer = 0;
+          n.mesh.position.copy(n.home);
+          n.mesh.scale.setScalar(0.01);
+        }
+      } else if (n.state === 'growing') {
+        n.timer += dt * 2;
+        n.mesh.scale.setScalar(Math.min(1, n.timer));
+        if (n.timer >= 1) n.state = 'attached';
+      }
+    });
+
+    // old PC: the screen fades and collapses to a line when switched off
+    power += (powerTarget - power) * (1 - Math.exp(-8 * dt));
+    screen.material.color.setScalar(power);
+    screen.scale.y = 0.03 + 0.97 * THREE.MathUtils.smoothstep(power, 0.15, 1);
+    screen.visible = power > 0.02;
+    led.visible = power > 0.5 && Math.sin(t * 5) > -0.6; // drive activity light
+  }
+
+  return { group, palm, pc, update, togglePower, shake };
 }

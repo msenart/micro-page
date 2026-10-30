@@ -5,6 +5,7 @@
 
 import * as THREE from './vendor/three.module.min.js';
 import { createIsland } from './island.js';
+import { createInteraction } from './interact.js';
 
 THREE.ColorManagement.enabled = false; // colours below are display colours, used as authored
 
@@ -422,10 +423,13 @@ export function start() {
   [1, 0.78, 0.56].forEach((s) => gyro.add(new THREE.Mesh(new THREE.TorusGeometry(s, 0.07, 20, coarse ? 64 : 110), steelMat)));
   scene.add(gyro);
 
-  const air = [ // hovering objects: [screen x, screen y, distance from camera, size]
-    { obj: knot, nx: -0.78, ny: 0.55, dist: 22, size: 1.2 },
-    { obj: gyro, nx: 0.74, ny: 0.5, dist: 20, size: 1.7 },
+  const air = [ // hovering objects: screen x / y, distance from camera, size, idle spin (rad/s about world axes)
+    { obj: knot, nx: -0.78, ny: 0.55, dist: 22, size: 1.2, spin: new THREE.Vector3(0.35, 0.5, 0) },
+    { obj: gyro, nx: 0.74, ny: 0.5, dist: 20, size: 1.7, spin: new THREE.Vector3(0.1, 0.18, 0.05) },
   ];
+
+  let wake = () => {}; // set below: makes sure frames are being drawn (needed when motion is reduced)
+  const interaction = createInteraction({ canvas, camera, floaters, air, island, waterHeight, wake: (ms) => wake(ms) });
 
   const v = new THREE.Vector3();
   // The sun rises from the horizon at the left edge of the view (6:00), arcs over and sets at the
@@ -528,13 +532,9 @@ export function start() {
     waterMat.uniforms.uSunCol.value.copy(lightCol).multiplyScalar(lit * THREE.MathUtils.smoothstep(lightDir.y, -0.02, 0.12));
 
     // floating and hovering objects
-    floaters.forEach((f, i) => {
-      const y = waterHeight(f.x, f.z, t);
-      f.mesh.position.set(f.x + Math.sin(t * 0.5 + i) * 0.15, y + f.size * 0.25, f.z);
-    });
-    island.update(t);
-    knot.rotation.set(t * 0.35, t * 0.5, 0);
-    gyro.children[0].rotation.y = t * 0.8;
+    interaction.update(t, dt); // balls float / fly, shapes spin: physics lives in interact.js
+    island.update(t, dt);
+    gyro.children[0].rotation.y = t * 0.8; // the rings also spin inside the gyroscope
     gyro.children[1].rotation.x = t * 0.6;
     gyro.children[2].rotation.set(t * 0.4, 0, t * 0.7);
     air.forEach((a, i) => {
@@ -616,16 +616,15 @@ export function start() {
     },
   };
 
-  if (calm) return controller; // reduced motion: one still frame, no animation loop
-
   const t0 = performance.now();
   let frames = 0;
   let acc = 0;
   let last = t0;
+  let running = false;
+  let activeUntil = calm ? 0 : Infinity; // reduced motion: only animate for a few seconds after an interaction
   function frame(now) {
-    requestAnimationFrame(frame);
     const dt = Math.min((now - last) / 1000, 0.1); // clamp so a background tab doesn't skip a day
-    update((now - t0) / 1000, dt, now);
+    update(calm ? 1.5 : (now - t0) / 1000, dt, now); // reduced motion keeps the sea itself still
     renderer.render(scene, camera);
 
     // weak device? drop to 1x resolution once
@@ -636,7 +635,17 @@ export function start() {
       frames = 0;
       acc = 0;
     }
+    if (now < activeUntil) requestAnimationFrame(frame);
+    else running = false;
   }
-  requestAnimationFrame(frame);
+  wake = (ms = 4000) => {
+    activeUntil = Math.max(activeUntil, performance.now() + ms);
+    if (!running) {
+      running = true;
+      last = performance.now();
+      requestAnimationFrame(frame);
+    }
+  };
+  if (!calm) wake();
   return controller;
 }

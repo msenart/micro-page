@@ -79,8 +79,11 @@ body {
 
 /* ---------- WebGL background: when it runs, the CSS scene below is hidden ---------- */
 #bg3d { display: none; position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-html.gl #bg3d { display: block; }
+html.gl #bg3d { display: block; pointer-events: auto; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 html.gl .scene { display: none; }
+/* let the pointer reach the 3D scene wherever no panel is in the way (balls, palm, PC, shapes are interactive) */
+html.gl .page { pointer-events: none; }
+html.gl .panel, html.gl .vista-bar > * { pointer-events: auto; }
 
 /* ---------- water: scrolling waves, falling drops ---------- */
 /* 300% wide = three wave periods; sliding by one period (33.33%) loops seamlessly */
@@ -371,6 +374,8 @@ h2 { font-size: 1.1rem; margin-bottom: 8px; }
   animation: hint-bob 2.4s ease-in-out infinite;
 }
 @keyframes hint-bob { 50% { transform: translateY(6px); } }
+.hint-sub { display: none; margin-top: 2px; font-size: .9rem; font-weight: 600; letter-spacing: 0; animation: none; }
+html.gl .hint-sub { display: block; }
 .vista-bar { margin-top: auto; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 .tod { display: none; flex: 1; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0; }
 html.gl .tod { display: flex; }
