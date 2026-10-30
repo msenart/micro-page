@@ -7,43 +7,34 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header>
-    <h1>Common Free Time</h1>
-    <p class="muted">Compare timetables and find the slots where everyone is free.</p>
-  </header>
+  <div class="page">
+    <header class="panel hero">
+      <h1>Common Free Time</h1>
+      <p>Compare timetables and find the slots where everyone is free.</p>
+    </header>
 
-  <p id="error" class="error"></p>
+    <p id="error" class="error"></p>
 
-  <section class="controls">
-    <div id="people" class="people"></div>
-    <label>Free slot at least
-      <select id="min-duration">
-        <option value="0">any length</option>
-        <option value="30">30 min</option>
-        <option value="60">1 h</option>
-        <option value="90">1 h 30</option>
-        <option value="120">2 h</option>
-        <option value="180">3 h</option>
-      </select>
-    </label>
-    <label>Day from <select id="day-start"></select></label>
-    <label>to <select id="day-end"></select></label>
-  </section>
+    <section class="panel controls">
+      <span class="label">Who's in?</span>
+      <div id="people" class="people"></div>
+    </section>
 
-  <nav class="weeknav">
-    <button id="prev" aria-label="Previous week">&larr;</button>
-    <strong id="week-label"></strong>
-    <button id="next" aria-label="Next week">&rarr;</button>
-    <button id="today">Today</button>
-    <span class="legend"><i class="swatch"></i> everyone free</span>
-  </nav>
+    <nav class="panel weeknav">
+      <button id="prev" class="gel" aria-label="Previous week">&larr;</button>
+      <strong id="week-label"></strong>
+      <button id="next" class="gel" aria-label="Next week">&rarr;</button>
+      <button id="today" class="gel">Today</button>
+      <span class="legend"><i class="swatch"></i> everyone free</span>
+    </nav>
 
-  <div class="scroll"><div id="grid" class="grid"></div></div>
+    <div class="panel scroll"><div id="grid" class="grid"></div></div>
 
-  <section>
-    <h2>Common free slots this week</h2>
-    <ul id="free-list" class="free-list"></ul>
-  </section>
+    <section class="panel">
+      <h2>Common free slots this week</h2>
+      <ul id="free-list" class="free-list"></ul>
+    </section>
+  </div>
 
   <script type="module" src="js/main.js"></script>
 </body>
