@@ -368,14 +368,6 @@ h2 { font-size: 1.1rem; margin-bottom: 8px; }
 
 /* ---------- last screen: just the background + time-of-day controls ---------- */
 .vista { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; padding-bottom: 4px; }
-.hint {
-  margin: 8px 0 0; text-align: center; font-weight: 700; letter-spacing: .4px;
-  color: #fff; text-shadow: 0 1px 3px rgba(0, 70, 140, .6);
-  animation: hint-bob 2.4s ease-in-out infinite;
-}
-@keyframes hint-bob { 50% { transform: translateY(6px); } }
-.hint-sub { display: none; margin-top: 2px; font-size: .9rem; font-weight: 600; letter-spacing: 0; animation: none; }
-html.gl .hint-sub { display: block; }
 .vista-bar { margin-top: auto; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 .tod { display: none; flex: 1; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0; }
 html.gl .tod { display: flex; }
