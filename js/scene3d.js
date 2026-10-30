@@ -4,6 +4,7 @@
 // CSS background stays in place.
 
 import * as THREE from './vendor/three.module.min.js';
+import { createIsland } from './island.js';
 
 THREE.ColorManagement.enabled = false; // colours below are display colours, used as authored
 
@@ -19,42 +20,68 @@ const MAX_ELEV = THREE.MathUtils.degToRad(26); // noon sun height (kept inside t
 
 // ---------- sea: sum of sine waves, shared by the GPU shader and the CPU (floating objects) ----------
 // [dirX, dirZ, amplitude, wavelength] in world units
+// Seven waves with unrelated directions and wavelengths, so the pattern never visibly repeats.
+// Each wave's height is also scaled by a slowly drifting envelope (0.3 - 1.0) that varies along the
+// wave crest, which breaks them into patches and gusts instead of uniform rows.
 const WAVES = [
-  [1, 0.3, 0.34, 14],
-  [-0.6, 1, 0.22, 9],
-  [0.3, -1, 0.14, 5.5],
-  [1, 1, 0.08, 3.2],
+  [1, 0.3, 0.3, 19.3],
+  [-0.6, 1, 0.22, 13.1],
+  [0.3, -1, 0.16, 9.7],
+  [1, 1, 0.1, 7.1],
+  [-1, 0.2, 0.06, 5.3],
+  [0.15, 1, 0.035, 4.1],
+  [-0.7, -0.8, 0.02, 3.1],
 ];
 const G = 9.8;
+const N_WAVES = WAVES.length;
+// The mesh only has a vertex every ~2.5 units, so only the long waves (>= 9.7) can be shown by moving
+// vertices; shorter ones would alias into a square grid. The fragment shader adds all of them per pixel.
+const N_LOW = 3;
 
-function waterHeight(x, z, t) {
+function waterHeight(x, z, t) { // matches the displaced mesh, so floating objects sit on the visible surface
   let h = 0;
-  for (const [dx, dz, a, len] of WAVES) {
+  WAVES.slice(0, N_LOW).forEach(([dx, dz, a, len], i) => {
+    const l = Math.hypot(dx, dz);
     const k = (2 * Math.PI) / len;
-    h += a * Math.sin((k * (dx * x + dz * z)) / Math.hypot(dx, dz) - Math.sqrt(G * k) * t);
-  }
+    const env = 0.55 + 0.45 * Math.sin(0.037 * ((-dz * x + dx * z) / l) + 0.17 * t + i * 1.7);
+    h += a * env * Math.sin((k * (dx * x + dz * z)) / l - Math.sqrt(G * k) * t);
+  });
   return h;
 }
 
 const WAVES_GLSL = /* glsl */ `
-  uniform vec4 uWaves[4];
+  uniform vec4 uWaves[${N_WAVES}];
   uniform float uTime;
-  float waveHeight(vec2 p) {
+  float waveEnv(vec2 d, vec2 p, int i) {
+    return 0.55 + 0.45 * sin(0.037 * dot(vec2(-d.y, d.x), p) + 0.17 * uTime + float(i) * 1.7);
+  }
+  float waveHeightLow(vec2 p) { // long waves only: used to move the mesh vertices
     float h = 0.0;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < ${N_LOW}; i++) {
       vec4 w = uWaves[i];
+      vec2 d = normalize(w.xy);
       float k = 6.2831853 / w.w;
-      h += w.z * sin(k * dot(normalize(w.xy), p) - sqrt(9.8 * k) * uTime);
+      h += w.z * waveEnv(d, p, i) * sin(k * dot(d, p) - sqrt(9.8 * k) * uTime);
+    }
+    return h;
+  }
+  float waveHeight(vec2 p) { // all waves: used per pixel for colour
+    float h = 0.0;
+    for (int i = 0; i < ${N_WAVES}; i++) {
+      vec4 w = uWaves[i];
+      vec2 d = normalize(w.xy);
+      float k = 6.2831853 / w.w;
+      h += w.z * waveEnv(d, p, i) * sin(k * dot(d, p) - sqrt(9.8 * k) * uTime);
     }
     return h;
   }
   vec2 waveSlope(vec2 p) {
     vec2 g = vec2(0.0);
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < ${N_WAVES}; i++) {
       vec4 w = uWaves[i];
       vec2 d = normalize(w.xy);
       float k = 6.2831853 / w.w;
-      g += d * (w.z * k * cos(k * dot(d, p) - sqrt(9.8 * k) * uTime));
+      g += d * (w.z * waveEnv(d, p, i) * k * cos(k * dot(d, p) - sqrt(9.8 * k) * uTime));
     }
     return g;
   }
@@ -64,6 +91,33 @@ const WAVES_GLSL = /* glsl */ `
 const DIR_UV_GLSL = /* glsl */ `
   vec2 dirUv(vec3 d) {
     return vec2(atan(d.z, d.x) / 6.2831853 + 0.5, asin(clamp(d.y, -1.0, 1.0)) / 3.14159265 + 0.5);
+  }
+`;
+
+// 2D simplex noise (Ian McEwan, Ashima Arts; MIT). Unlike value noise it has no visible grid cells.
+const SNOISE_GLSL = /* glsl */ `
+  vec3 permute(vec3 x) { return mod(((x * 34.0) + 1.0) * x, 289.0); }
+  float snoise(vec2 v) {
+    const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+    vec2 i = floor(v + dot(v, C.yy));
+    vec2 x0 = v - i + dot(i, C.xx);
+    vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+    i = mod(i, 289.0);
+    vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+    vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+    m = m * m;
+    m = m * m;
+    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+    vec3 h = abs(x) - 0.5;
+    vec3 ox = floor(x + 0.5);
+    vec3 a0 = x - ox;
+    m *= 1.79284291400159 - 0.85373472095314 * (a0 * a0 + h * h);
+    vec3 g;
+    g.x = a0.x * x0.x + h.x * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return 130.0 * dot(m, g);
   }
 `;
 
@@ -92,7 +146,7 @@ const WATER_VERT = /* glsl */ `
   void main() {
     vec4 wp = modelMatrix * vec4(position, 1.0);
     vXZ = wp.xz;
-    wp.y += waveHeight(wp.xz);
+    wp.y += waveHeightLow(wp.xz);
     vWorld = wp.xyz;
     gl_Position = projectionMatrix * viewMatrix * wp;
   }
@@ -112,10 +166,23 @@ const WATER_FRAG = /* glsl */ `
   varying vec2 vXZ;
   ${DIR_UV_GLSL}
 
+  ${SNOISE_GLSL}
+
   void main() {
     float dist = length(uCam - vWorld);
-    // calm the small ripples with distance so the horizon doesn't shimmer
-    vec2 g = waveSlope(vXZ) / (1.0 + dist * 0.012);
+    // Chaos: a slow, large-scale warp of the wave field. Patches of sea drift out of step with each
+    // other, so it reads as irregular swell instead of tidy rows. Low frequency, so it never looks rough.
+    vec2 warp = vec2(snoise(vXZ * 0.03 + vec2(uTime * 0.03, 3.1)),
+                     snoise(vXZ * 0.03 + vec2(7.7, -uTime * 0.025))) * 6.0;
+    vec2 pw = vXZ + warp;
+    vec2 g = waveSlope(pw) / (1.0 + dist * 0.012);
+    // gentle low-frequency chop on top (wavelength ~4.5 units)
+    vec2 q = mat2(0.8, -0.6, 0.6, 0.8) * (vXZ * 0.22) + vec2(uTime * 0.12, -uTime * 0.08); // rotated: no axis-aligned look
+    float e = 0.1;
+    vec2 dn = vec2(snoise(q + vec2(e, 0.0)) - snoise(q - vec2(e, 0.0)),
+                   snoise(q + vec2(0.0, e)) - snoise(q - vec2(0.0, e))) / (2.0 * e);
+    g += dn * 0.06 / (1.0 + dist * 0.02);
+    float hgt = waveHeight(pw); // per-pixel height: the mesh is too coarse for the small waves
     vec3 N = normalize(vec3(-g.x, 1.0, -g.y));
     vec3 V = normalize(uCam - vWorld);
 
@@ -124,12 +191,12 @@ const WATER_FRAG = /* glsl */ `
     vec3 sky = texture2D(uSky, dirUv(R)).rgb;
 
     float fresnel = 0.04 + 0.96 * pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 4.0);
-    float crest = clamp(vWorld.y * 1.6 + 0.35, 0.0, 1.0);
+    float crest = clamp(hgt * 1.6 + 0.35, 0.0, 1.0);
     vec3 col = mix(mix(uDeep, uShallow, crest), sky, fresnel);
 
     col += uSunCol * pow(max(dot(R, uSun), 0.0), 350.0) * 2.0;                       // sun / moon glint
     vec3 foam = mix(vec3(0.15, 0.2, 0.32), vec3(1.0), uLight);
-    col = mix(col, foam, smoothstep(0.55, 0.8, vWorld.y) * 0.45);                    // foam on the crests
+    col = mix(col, foam, smoothstep(0.55, 0.8, hgt) * 0.45);                    // foam on the crests
     col = mix(col, uHorizon, smoothstep(30.0, 170.0, dist));                         // haze to the horizon
     gl_FragColor = vec4(col, 1.0);
   }
@@ -248,29 +315,6 @@ function glowTexture(stops, size = 256) {
   return new THREE.CanvasTexture(c);
 }
 
-function moonTexture() {
-  const size = 128;
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const g = c.getContext('2d');
-  const glow = g.createRadialGradient(64, 64, 10, 64, 64, 64);
-  glow.addColorStop(0, 'rgba(210,225,255,.55)');
-  glow.addColorStop(1, 'rgba(210,225,255,0)');
-  g.fillStyle = glow;
-  g.fillRect(0, 0, size, size);
-  g.fillStyle = '#eef3ff';
-  g.beginPath();
-  g.arc(64, 64, 24, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = 'rgba(150,165,205,.35)'; // craters
-  [[56, 56, 6], [72, 62, 5], [62, 74, 4], [74, 76, 3]].forEach(([x, y, r]) => {
-    g.beginPath();
-    g.arc(x, y, r, 0, Math.PI * 2);
-    g.fill();
-  });
-  return new THREE.CanvasTexture(c);
-}
-
 // ---------- scene ----------
 export function start() {
   const canvas = document.getElementById('bg3d');
@@ -306,8 +350,8 @@ export function start() {
   const moonDir = new THREE.Vector3();
   const lightDir = new THREE.Vector3(); // whichever of the two is lighting the scene
   const lightCol = new THREE.Color();
-  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: glowTexture([[0, 'rgba(255,255,255,1)'], [0.05, 'rgba(255,255,255,1)'], [0.1, 'rgba(255,255,255,.6)'], [0.3, 'rgba(255,255,255,.14)'], [1, 'rgba(255,255,255,0)']]),
+  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ // soft glow around the sun sphere
+    map: glowTexture([[0, 'rgba(255,255,255,.85)'], [0.1, 'rgba(255,255,255,.45)'], [0.3, 'rgba(255,255,255,.14)'], [1, 'rgba(255,255,255,0)']]),
     blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
   }));
   sunSprite.scale.setScalar(150);
@@ -316,9 +360,19 @@ export function start() {
     blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
   }));
   haloSprite.scale.setScalar(520);
-  const moonSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: moonTexture(), transparent: true, depthWrite: false }));
-  moonSprite.scale.setScalar(70);
-  scene.add(sunSprite, haloSprite, moonSprite);
+  const moonSprite = new THREE.Sprite(new THREE.SpriteMaterial({ // faint halo around the moon sphere
+    map: glowTexture([[0, 'rgba(200,215,255,.5)'], [0.25, 'rgba(200,215,255,.18)'], [1, 'rgba(200,215,255,0)']]),
+    blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
+  }));
+  moonSprite.scale.setScalar(130);
+
+  // The sun and moon themselves are plain, uniformly coloured spheres, far away (radius 11 / 9 at
+  // distance 450). Their colour is always a lighter tint of the light they give off (see update()).
+  const ballGeo = new THREE.SphereGeometry(1, coarse ? 32 : 48, coarse ? 16 : 24);
+  const sunBall = new THREE.Mesh(ballGeo, new THREE.MeshBasicMaterial());
+  const moonBall = new THREE.Mesh(ballGeo, new THREE.MeshBasicMaterial({ transparent: true }));
+  const WHITE = new THREE.Color('#ffffff');
+  scene.add(sunBall, moonBall, sunSprite, haloSprite, moonSprite);
   const sunLight = new THREE.DirectionalLight(0xffffff, 1);
   scene.add(sunLight);
 
@@ -357,6 +411,10 @@ export function start() {
   ].map((f) => ({ ...f, mesh: new THREE.Mesh(sphereGeo, chromeMat) }));
   floaters.forEach((f) => scene.add(f.mesh));
 
+  const island = createIsland({ coarse }); // sits on the left, a little way out to sea
+  const ISLAND = { nx: -0.7, z: -8 };
+  scene.add(island.group);
+
   const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.9, 0.28, coarse ? 110 : 180, coarse ? 16 : 24), chromeMat);
   scene.add(knot);
 
@@ -394,6 +452,9 @@ export function start() {
       f.size = f.r * sizeScale;
       f.mesh.scale.setScalar(f.size);
     });
+    island.group.position.set(ISLAND.nx * halfH(ISLAND.z) * camera.aspect * 0.85, 0, ISLAND.z);
+    island.group.scale.setScalar(sizeScale);
+    island.group.rotation.y = 0.2;
     air.forEach((a) => {
       v.set(a.nx, a.ny, 0.5).unproject(camera).sub(camera.position).normalize();
       a.obj.position.copy(camera.position).addScaledVector(v, a.dist);
@@ -471,6 +532,7 @@ export function start() {
       const y = waterHeight(f.x, f.z, t);
       f.mesh.position.set(f.x + Math.sin(t * 0.5 + i) * 0.15, y + f.size * 0.25, f.z);
     });
+    island.update(t);
     knot.rotation.set(t * 0.35, t * 0.5, 0);
     gyro.children[0].rotation.y = t * 0.8;
     gyro.children[1].rotation.x = t * 0.6;
@@ -493,10 +555,19 @@ export function start() {
     const nearHorizon = 1 - THREE.MathUtils.clamp(eDeg / 12, 0, 1);
     sunSprite.scale.setScalar(150 * (1 + 0.45 * nearHorizon)); // the low sun looks bigger
     haloSprite.scale.setScalar(520 * (1 + 0.3 * nearHorizon));
-    sunSprite.visible = haloSprite.visible = sunDir.y > -0.12; // the sea hides the part below the horizon
+    sunSprite.visible = haloSprite.visible = sunBall.visible = sunDir.y > -0.12; // the sea hides the part below the horizon
+    sunBall.position.copy(sunSprite.position);
+    sunBall.scale.setScalar(11 * (1 + 0.3 * nearHorizon));
+    sunBall.material.color.copy(P.sun).lerp(WHITE, 0.6); // uniform colour, lighter than the sunlight (P.sun)
     moonSprite.position.copy(camera.position).addScaledVector(moonDir, 450);
-    moonSprite.material.opacity = THREE.MathUtils.clamp((0.06 - sunDir.y) / 0.2, 0, 1);
-    moonSprite.visible = moonSprite.material.opacity > 0.01;
+    moonBall.position.copy(moonSprite.position);
+    moonBall.scale.setScalar(9);
+    const moonFade = THREE.MathUtils.clamp((0.06 - sunDir.y) / 0.2, 0, 1);
+    moonBall.material.color.copy(MOON_COLOR).lerp(WHITE, 0.6); // always full, lighter than the moonlight (MOON_COLOR)
+    moonBall.material.opacity = moonFade;
+    moonSprite.material.color.copy(MOON_COLOR);
+    moonSprite.material.opacity = moonFade;
+    moonSprite.visible = moonBall.visible = moonFade > 0.01;
 
     if ((skyDirty && now - lastSky > 120) || now - lastSky > SKY_INTERVAL) refreshSky(now);
     if (now - lastEmit > 200) {
