@@ -1,4 +1,5 @@
 [
-  { "id": "mathieu", "name": "Mathieu", "color": "#3b82f6", "file": "people/mathieu.json" },
-  { "id": "demo", "name": "Demo Friend", "color": "#ec4899", "file": "people/demo.json" }
+  { "id": "mathieu", "name": "Zika & Marco", "color": "#3b82f6", "file": "people/mathieu.json" },
+  { "id": "kurumi-cram", "name": "Kurumi & Cram", "color": "#ec4899", "file": "people/kurumi-cram.json" },
+  { "id": "capeur", "name": "Capeur", "color": "#22c55e", "file": "people/capeur.json" }
 ]
