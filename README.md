@@ -3,7 +3,7 @@
 A small static page that overlays friends' timetables and highlights the time slots where everyone is free, to help organize meetups.
 
 - Week view with one color per person; classes of different people sit side by side.
-- Green blocks and a text list show the common free slots (gaps under 30 min between 08:00 and 21:00 are ignored).
+- A list under the grid shows the common free slots (gaps under 30 min between 08:00 and 21:00 are ignored).
 - Plain HTML/CSS/JS, no build step.
 
 ## Run locally

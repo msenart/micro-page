@@ -1,3 +1,4 @@
 [
-  { "id": "mathieu", "name": "Mathieu", "color": "#3b82f6", "file": "people/mathieu.json" }
+  { "id": "mathieu", "name": "Mathieu", "color": "#3b82f6", "file": "people/mathieu.json" },
+  { "id": "demo", "name": "Demo Friend", "color": "#ec4899", "file": "people/demo.json" }
 ]

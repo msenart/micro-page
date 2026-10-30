@@ -1,6 +1,7 @@
 import { commonFreeSlots, fmt, toMin } from './freetime.js';
 
 export const PX_PER_HOUR = 48;
+const STACK_OFFSET = 7; // px each person is shifted in stacked mode
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -27,11 +28,11 @@ const el = (tag, cls, text) => {
 const top = (min, dayStart) => ((min - dayStart) / 60) * PX_PER_HOUR;
 
 /**
- * Draws the week grid. Each selected person gets a lane inside every day column;
- * common free slots are painted behind the events across the full column width.
- * Returns the free slots per day for the text list.
+ * Builds the week grid with the classes of *every* person (so that showing or hiding
+ * someone later is just a class change that CSS can animate). `selected` is the set of
+ * visible person ids, `mode` is 'stacked' or 'side'.
  */
-export function renderWeek(root, { monday, people, dayStart, dayEnd, minDuration }) {
+export function renderWeek(root, { monday, people, selected, mode, dayStart, dayEnd }) {
   root.replaceChildren();
   const dates = weekDates(monday);
   const height = ((dayEnd - dayStart) / 60) * PX_PER_HOUR;
@@ -50,7 +51,6 @@ export function renderWeek(root, { monday, people, dayStart, dayEnd, minDuration
   }
   body.append(axis);
 
-  const freeByDay = [];
   let n = 0; // staggers the pop-in animation
   dates.forEach((d) => {
     const date = isoDate(d);
@@ -58,18 +58,7 @@ export function renderWeek(root, { monday, people, dayStart, dayEnd, minDuration
     col.style.height = `${height}px`;
     col.style.backgroundSize = `100% ${PX_PER_HOUR}px`;
 
-    const free = people.length ? commonFreeSlots(people, date, dayStart, dayEnd, minDuration) : [];
-    freeByDay.push({ date: d, free });
-    free.forEach((s) => {
-      const b = el('div', 'free');
-      b.style.setProperty('--i', n++);
-      b.style.top = `${top(s.start, dayStart)}px`;
-      b.style.height = `${top(s.end, dayStart) - top(s.start, dayStart)}px`;
-      b.title = `Everyone free ${fmt(s.start)}–${fmt(s.end)}`;
-      col.append(b);
-    });
-
-    people.forEach((p, i) => {
+    people.forEach((p) => {
       p.events
         .filter((e) => e.date === date)
         .forEach((e) => {
@@ -79,12 +68,11 @@ export function renderWeek(root, { monday, people, dayStart, dayEnd, minDuration
           const b = el('div', 'event');
           b.style.top = `${top(s, dayStart)}px`;
           b.style.height = `${top(en, dayStart) - top(s, dayStart)}px`;
-          b.style.left = `${(i / people.length) * 100}%`;
-          b.style.width = `${100 / people.length}%`;
           b.style.setProperty('--c', p.color);
           b.style.setProperty('--i', n++);
+          if (selected.has(p.id)) b.classList.add('enter');
           Object.assign(b.dataset, {
-            person: p.name, title: e.title, time: `${e.start}–${e.end}`,
+            pid: p.id, person: p.name, title: e.title, time: `${e.start}–${e.end}`,
             location: e.location ?? '', color: p.color,
           });
           b.append(el('b', '', e.title), el('span', '', `${e.start}–${e.end}`));
@@ -96,7 +84,40 @@ export function renderWeek(root, { monday, people, dayStart, dayEnd, minDuration
   });
 
   root.append(head, body);
-  return freeByDay;
+  applyLayout(root, people, selected, mode);
+}
+
+/**
+ * Positions the classes for the current selection and view mode. Hidden people get
+ * `.gone`; the others get a new left/width, which CSS transitions smoothly.
+ */
+export function applyLayout(root, people, selected, mode) {
+  const shown = people.filter((p) => selected.has(p.id)).map((p) => p.id);
+  const count = shown.length;
+  root.querySelectorAll('.event').forEach((b) => {
+    const i = shown.indexOf(b.dataset.pid);
+    b.classList.toggle('gone', i < 0);
+    if (i < 0) return; // keep its last position so it fades out in place
+    if (mode === 'side') {
+      b.style.left = `${(i / count) * 100}%`;
+      b.style.width = `${100 / count}%`;
+      b.style.zIndex = 1;
+    } else {
+      // Stacked: same slot for everyone, each person shifted a little like a pile of cards.
+      b.style.left = `${i * STACK_OFFSET}px`;
+      b.style.width = `calc(100% - ${(count - 1) * STACK_OFFSET}px)`;
+      b.style.zIndex = i + 1;
+    }
+    b.classList.toggle('stacked', mode !== 'side' && count > 1);
+  });
+}
+
+/** Common free slots of `people` for each day of the week starting at `monday`. */
+export function freeSlotsForWeek(people, monday, dayStart, dayEnd, minDuration) {
+  return weekDates(monday).map((date) => ({
+    date,
+    free: people.length ? commonFreeSlots(people, isoDate(date), dayStart, dayEnd, minDuration) : [],
+  }));
 }
 
 export function renderFreeList(root, freeByDay, people) {

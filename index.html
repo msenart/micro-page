@@ -11,13 +11,25 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="bubbles" aria-hidden="true">
-    <span class="bubble" style="--s:120px; --x:6%;  --d:19s; --delay:-3s;  --dx:40px"></span>
-    <span class="bubble" style="--s:60px;  --x:22%; --d:14s; --delay:-9s;  --dx:-30px"></span>
-    <span class="bubble" style="--s:180px; --x:41%; --d:26s; --delay:-14s; --dx:50px"></span>
-    <span class="bubble" style="--s:80px;  --x:63%; --d:17s; --delay:-5s;  --dx:-40px"></span>
-    <span class="bubble" style="--s:140px; --x:80%; --d:23s; --delay:-11s; --dx:30px"></span>
-    <span class="bubble" style="--s:40px;  --x:92%; --d:12s; --delay:-1s;  --dx:-20px"></span>
+  <!-- 3D background: three depth layers with different mouse parallax, bubbles + glass cubes -->
+  <div class="scene" aria-hidden="true">
+    <div class="layer far">
+      <span class="bubble" style="--s:40px;  --x:12%; --d:22s; --delay:-4s;  --dx:-20px"></span>
+      <span class="bubble" style="--s:55px;  --x:58%; --d:25s; --delay:-15s; --dx:25px"></span>
+      <span class="bubble" style="--s:35px;  --x:90%; --d:20s; --delay:-8s;  --dx:-15px"></span>
+      <div class="cube-wrap" style="--s:50px; --x:30%; --y:62%; --d:11s; --spin:26s; --dx:30px"><div class="cube"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    </div>
+    <div class="layer mid">
+      <span class="bubble" style="--s:90px;  --x:6%;  --d:19s; --delay:-3s;  --dx:40px"></span>
+      <span class="bubble" style="--s:70px;  --x:44%; --d:16s; --delay:-9s;  --dx:-30px"></span>
+      <span class="bubble" style="--s:100px; --x:72%; --d:21s; --delay:-12s; --dx:35px"></span>
+      <div class="cube-wrap" style="--s:90px; --x:78%; --y:22%; --d:13s; --spin:32s; --dx:-40px"><div class="cube"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    </div>
+    <div class="layer near">
+      <span class="bubble" style="--s:190px; --x:34%; --d:28s; --delay:-14s; --dx:50px"></span>
+      <span class="bubble" style="--s:150px; --x:86%; --d:24s; --delay:-6s;  --dx:-45px"></span>
+      <div class="cube-wrap" style="--s:140px; --x:4%; --y:40%; --d:15s; --spin:40s; --dx:50px"><div class="cube"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    </div>
   </div>
 
   <div class="page">
@@ -31,15 +43,20 @@
     <section class="panel controls">
       <span class="label">Who's in?</span>
       <div id="people" class="people"></div>
+      <div class="view">
+        <span class="label">View</span>
+        <div class="seg">
+          <button class="gel" data-mode="stacked" aria-pressed="true">Stacked</button>
+          <button class="gel off" data-mode="side" aria-pressed="false">Side by side</button>
+        </div>
+      </div>
     </section>
 
     <nav class="panel weeknav">
       <button id="prev" class="gel" aria-label="Previous week">&larr;</button>
       <strong id="week-label"></strong>
       <button id="next" class="gel" aria-label="Next week">&rarr;</button>
-      <button id="today" class="gel">Today</button>
-      <span class="legend"><i class="swatch"></i> everyone free</span>
-    </nav>
+      <button id="today" class="gel">Today</button>    </nav>
 
     <div class="panel scroll"><div id="grid" class="grid"></div></div>
 
