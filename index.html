@@ -91,6 +91,23 @@
       <h2>Common free slots this week</h2>
       <ul id="free-list" class="free-list"></ul>
     </section>
+
+    <!-- Last screen: scroll down until only the background is left. -->
+    <div class="vista">
+      <p class="hint">&darr; Scroll down to enjoy the view &darr;</p>
+      <div class="vista-bar">
+        <div class="panel tod">
+          <span class="label">Time of day</span>
+          <input id="tod-range" type="range" min="0" max="24" step="0.05" value="10" aria-label="Time of day">
+          <strong id="tod-clock">10:00</strong>
+          <div class="seg">
+            <button id="tod-live" class="gel" aria-pressed="true" title="Follow the clock of this device">Live</button>
+            <button id="tod-lapse" class="gel off" aria-pressed="false" title="Watch a whole day pass in 6 minutes">Time-lapse</button>
+          </div>
+        </div>
+        <button id="to-top" class="gel">&uarr; Back to timetable</button>
+      </div>
+    </div>
   </div>
 
   <div id="tip" class="tip" hidden></div>

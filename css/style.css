@@ -363,6 +363,43 @@ h2 { font-size: 1.1rem; margin-bottom: 8px; }
 }
 .muted { color: var(--ink-soft); margin: 0; }
 
+/* ---------- last screen: just the background + time-of-day controls ---------- */
+.vista { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; padding-bottom: 4px; }
+.hint {
+  margin: 8px 0 0; text-align: center; font-weight: 700; letter-spacing: .4px;
+  color: #fff; text-shadow: 0 1px 3px rgba(0, 70, 140, .6);
+  animation: hint-bob 2.4s ease-in-out infinite;
+}
+@keyframes hint-bob { 50% { transform: translateY(6px); } }
+.vista-bar { margin-top: auto; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.tod { display: none; flex: 1; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0; }
+html.gl .tod { display: flex; }
+.tod strong { min-width: 3.2em; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* time slider: night -> dawn -> day -> dusk -> night, with a glossy orb handle */
+.tod input[type=range] { flex: 1; min-width: 180px; height: 26px; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+.tod input[type=range]::-webkit-slider-runnable-track {
+  height: 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .8);
+  background: linear-gradient(90deg, #0a1850, #ffae78 25%, #7fd3fb 50%, #ffae78 75%, #0a1850);
+  box-shadow: inset 0 2px 4px rgba(0, 40, 90, .35);
+}
+.tod input[type=range]::-moz-range-track {
+  height: 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .8);
+  background: linear-gradient(90deg, #0a1850, #ffae78 25%, #7fd3fb 50%, #ffae78 75%, #0a1850);
+}
+.tod input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 26px; height: 26px; margin-top: -8px; border-radius: 50%;
+  border: 1px solid #1e8fe0;
+  background: radial-gradient(circle at 35% 28%, #fff 0 12%, #8fe0ff 38%, #1a8ee8 100%);
+  box-shadow: 0 3px 8px rgba(0, 100, 200, .5);
+}
+.tod input[type=range]::-moz-range-thumb {
+  width: 24px; height: 24px; border-radius: 50%; border: 1px solid #1e8fe0;
+  background: radial-gradient(circle at 35% 28%, #fff 0 12%, #8fe0ff 38%, #1a8ee8 100%);
+  box-shadow: 0 3px 8px rgba(0, 100, 200, .5);
+}
+@media (max-width: 700px) { .tod input[type=range] { min-width: 100%; order: 5; } }
+
 /* ---------- aqua scrollbars ---------- */
 @supports selector(::-webkit-scrollbar) {
   ::-webkit-scrollbar { width: 14px; height: 14px; }
